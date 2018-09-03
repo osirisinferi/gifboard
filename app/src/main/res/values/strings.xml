@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">Gifboard</string>
+    <string name="noGifsFound">Could not find any Gif\'s on your device.</string>
+    <string name="noGifsFoundOnline">Could not find any Gif\'s online.</string>
+    <string name="noStoragePermission">Could not access Storage. Make sure you granted permission.</string>
+    <string name="changeInput">Change Keyboard</string>
+    <string name="notSupported">App does not support keyboard.</string>
+    <string name="search">Refresh</string>
+    <string name="settings">Settings</string>
+    <string name="enableKeyboard">Enable keyboard</string>
+    <string name="askForStorageReadPermissionBtn">Grant storage read permission</string>
+    <string name="quality">Quality of Gif\'s</string>
+
+    <string-array name="qualityLevels">
+        <item>Normal (Recommended)</item>
+        <item>Low</item>
+        <item>Medium</item>
+        <item>Garbage</item>
+        <item>Original</item>
+    </string-array>
+</resources>
