@@ -395,47 +395,50 @@ public class Keyboard extends InputMethodService {
 
                             layout.addView(img);
 
-                            img.setOnLongClickListener(new View.OnLongClickListener() {
+                            setAndLoadImage(context, img, url, new ImageCallback() {
                                 @Override
-                                public boolean onLongClick(View v) {
-                                    addToFavorites(url);
-                                    if (Build.VERSION.SDK_INT > 22) {
-                                        Drawable favoriteDrawableRaw = getDrawable(R.drawable.ic_favorite);
-                                        if (favoriteDrawableRaw != null) {
-                                            Bitmap bitmap = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888);
+                                public void onLoaded() {
+                                    img.setOnLongClickListener(new View.OnLongClickListener() {
+                                        @Override
+                                        public boolean onLongClick(View v) {
+                                            addToFavorites(url);
+                                            if (Build.VERSION.SDK_INT > 22) {
+                                                Drawable favoriteDrawableRaw = getDrawable(R.drawable.ic_favorite);
+                                                if (favoriteDrawableRaw != null) {
+                                                    Bitmap bitmap = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888);
 
 
-                                            bitmap.eraseColor(Color.argb(80, 0, 0, 0));
+                                                    bitmap.eraseColor(Color.argb(80, 0, 0, 0));
 
-                                            Canvas canvas = new Canvas(bitmap);
+                                                    Canvas canvas = new Canvas(bitmap);
 
-                                            float h = 100;
-                                            float w = ((float) img.getDrawable().getIntrinsicHeight() / (float) img.getDrawable().getIntrinsicWidth()) * h;
-                                            int cw = canvas.getWidth();
-                                            int ch = canvas.getHeight();
+                                                    float h = 100;
+                                                    float w = ((float) img.getDrawable().getIntrinsicHeight() / (float) img.getDrawable().getIntrinsicWidth()) * h;
+                                                    int cw = canvas.getWidth();
+                                                    int ch = canvas.getHeight();
 
-                                            favoriteDrawableRaw.setBounds((int) (cw / 2 - w / 2), (int) (ch / 2 - h / 2), (int) (cw / 2 + w / 2), (int) (ch / 2 + h / 2));
-                                            favoriteDrawableRaw.draw(canvas);
-                                            Drawable favoriteDrawable = new BitmapDrawable(getResources(), bitmap);
-                                            favoriteDrawable.setColorFilter(getColor(R.color.pink), PorterDuff.Mode.MULTIPLY);
+                                                    favoriteDrawableRaw.setBounds((int) (cw / 2 - w / 2), (int) (ch / 2 - h / 2), (int) (cw / 2 + w / 2), (int) (ch / 2 + h / 2));
+                                                    favoriteDrawableRaw.draw(canvas);
+                                                    Drawable favoriteDrawable = new BitmapDrawable(getResources(), bitmap);
+                                                    favoriteDrawable.setColorFilter(getColor(R.color.pink), PorterDuff.Mode.MULTIPLY);
 
-                                            img.setForeground(favoriteDrawable);
+                                                    img.setForeground(favoriteDrawable);
 
-                                            new android.os.Handler().postDelayed(new Runnable() {
-                                                @TargetApi(23)
-                                                public void run() {
-                                                    img.setForeground(null);
+                                                    new android.os.Handler().postDelayed(new Runnable() {
+                                                        @TargetApi(23)
+                                                        public void run() {
+                                                            img.setForeground(null);
+                                                        }
+                                                    }, 1000);
                                                 }
-                                            }, 1000);
+                                            } else {
+                                                Toast.makeText(Keyboard.this, "♥", Toast.LENGTH_SHORT).show();
+                                            }
+                                            return true;
                                         }
-                                    } else {
-                                        Toast.makeText(Keyboard.this, "♥", Toast.LENGTH_SHORT).show();
-                                    }
-                                    return true;
+                                    });
                                 }
                             });
-
-                            setAndLoadImage(context, layout, img, url, 0);
                         }
 
                         if (maxPage > page) {
@@ -494,7 +497,7 @@ public class Keyboard extends InputMethodService {
                     }
                 });
 
-                setAndLoadImage(this, imageHolder, img, url, 0);
+                setAndLoadImage(this, img, url, null);
             }
         }
     }
@@ -537,19 +540,22 @@ public class Keyboard extends InputMethodService {
         editor.apply();
     }
 
-    private void setAndLoadImage(final Context context, final LinearLayout layout, final ImageView img, final String url, final int count) {
+    private void setAndLoadImage(final Context context, final ImageView img, final String url, final ImageCallback imageCallback) {
         img.setLayoutParams(new LinearLayout.LayoutParams(300, 300));
         img.setPadding(10, 5, 10, 5);
 
-        Bitmap bm = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888);
-        bm.eraseColor(getResources().getColor(android.R.color.black));
-        img.setImageBitmap(bm);
+        img.setImageDrawable(getResources().getDrawable(R.drawable.ic_loading));
 
         Request request = Glide.with(getApplicationContext()).asFile().apply(new RequestOptions().timeout(30000)).load(url).listener(new RequestListener<File>() {
             @Override
             public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<File> target, boolean isFirstResource) {
-                if (count < 3) setAndLoadImage(context, layout, img, url, count + 1);
-                else layout.removeView(img);
+                img.setImageDrawable(getResources().getDrawable(R.drawable.ic_refresh));
+                img.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        setAndLoadImage(context, img, url, imageCallback);
+                    }
+                });
                 return false;
             }
 
@@ -581,6 +587,8 @@ public class Keyboard extends InputMethodService {
                                 }
                             }
                         });
+
+                        if (imageCallback != null) imageCallback.onLoaded();
 
                         return false;
                     }

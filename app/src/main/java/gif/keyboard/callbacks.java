@@ -7,3 +7,7 @@ interface FetcherCallback {
 
     void onError(int code);
 }
+
+interface ImageCallback {
+    void onLoaded();
+}
