@@ -1,15 +1,21 @@
 package gif.keyboard;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.content.ClipDescription;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.inputmethodservice.InputMethodService;
 import android.net.Uri;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -18,6 +24,7 @@ import android.support.v13.view.inputmethod.InputConnectionCompat;
 import android.support.v13.view.inputmethod.InputContentInfoCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.text.SpannableStringBuilder;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -36,6 +43,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
+import com.bumptech.glide.request.Request;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.Target;
@@ -50,22 +58,49 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class keyboard extends InputMethodService {
+public class Keyboard extends InputMethodService {
 
     private LinearLayout imageHolder;
     private Boolean firstStart = true;
     private ArrayList<String> images = new ArrayList<>();
+    private ArrayList<Request> requestQueue = new ArrayList<>();
 
     @Override
     public void onCreate() {
+        int style = R.style.AppTheme;
+
+
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+
+        switch (pref.getInt("style", 0)) {
+            case 0:
+                style = R.style.AppTheme;
+                break;
+            case 1:
+                style = R.style.AppThemePink;
+                break;
+            case 2:
+                style = R.style.AppThemeGreen;
+                break;
+            case 3:
+                style = R.style.AppThemeBlack;
+                break;
+        }
+
+        setTheme(style);
+
         super.onCreate();
     }
 
     @Override
     public View onCreateInputView() {
 
+        TypedValue typedValue = new TypedValue();
+        getTheme().resolveAttribute(R.attr.colorPrimary, typedValue, true);
+        int colorPrimary = typedValue.data;
+
         LinearLayout mainLayout = new LinearLayout(this);
-        mainLayout.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        mainLayout.setBackgroundColor(colorPrimary);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
 
         HorizontalScrollView scrollView = new HorizontalScrollView(this);
@@ -83,9 +118,21 @@ public class keyboard extends InputMethodService {
         dialogCharScrollView.addView(dialogCharView);
 
         final TextView searchQueryTxt = new TextView(this);
-        searchQueryTxt.setTextColor(getResources().getColor(android.R.color.white));
+        searchQueryTxt.setTextColor(colorPrimary);
+        searchQueryTxt.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        searchQueryTxt.setPadding(150, 10, 20, 10);
         searchQueryTxt.setTextSize(22);
         searchQueryTxt.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+
+        LinearLayout searchQueryLayout = new LinearLayout(this);
+        searchQueryLayout.setOrientation(LinearLayout.HORIZONTAL);
+        searchQueryLayout.setBackground(getResources().getDrawable(R.drawable.background_round));
+        searchQueryLayout.addView(searchQueryTxt);
+
+        LinearLayout searchQueryWrapperLayout = new LinearLayout(this);
+        searchQueryLayout.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        searchQueryWrapperLayout.setPadding(20, 10, 20, 10);
+        searchQueryWrapperLayout.addView(searchQueryLayout);
 
         LinearLayout dialogSearchLine = new LinearLayout(this);
 
@@ -93,27 +140,31 @@ public class keyboard extends InputMethodService {
 
         final LinearLayout dialogView = new LinearLayout(this);
         dialogView.setVisibility(View.GONE);
-
         dialogView.setOrientation(LinearLayout.VERTICAL);
-        dialogView.addView(searchQueryTxt);
+        dialogView.addView(searchQueryWrapperLayout);
         dialogView.addView(dialogSearchLine);
 
-        Button backspace = new Button(this);
-        backspace.setLayoutParams(new LinearLayout.LayoutParams(100, 100));
-        backspace.setText("⌫");
+        Button backspaceBtn = new Button(this);
+        backspaceBtn.setLayoutParams(new LinearLayout.LayoutParams(100, 80));
+        backspaceBtn.setTextSize(18);
+        backspaceBtn.setPadding(10, 0, 10, 20);
+        backspaceBtn.setTextColor(colorPrimary);
+        backspaceBtn.setBackground(null);
+        backspaceBtn.setText("⌫");
 
-        backspace.setOnClickListener(new View.OnClickListener() {
+        backspaceBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String query = searchQueryTxt.getText().toString();
 
                 if (query.length() > 0) {
+                    clearAllRequests();
                     searchQueryTxt.setText(query.subSequence(0, query.length() - 1));
                 }
             }
         });
 
-        backspace.setOnLongClickListener(new View.OnLongClickListener() {
+        backspaceBtn.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 searchQueryTxt.setText("");
@@ -121,29 +172,26 @@ public class keyboard extends InputMethodService {
             }
         });
 
+        searchQueryLayout.addView(backspaceBtn);
+
         ImageButton searchBtn = new ImageButton(this);
         searchBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_search));
-        TypedValue searchButtonValue = new TypedValue();
-        this.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, searchButtonValue, true);
-        searchBtn.setBackground(getResources().getDrawable(searchButtonValue.resourceId));
+        searchBtn.setBackgroundResource(R.drawable.background_button);
         searchBtn.setLayoutParams(new LinearLayout.LayoutParams(0, 100, 1));
 
         searchBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String query = searchQueryTxt.getText().toString();
+                String query = searchQueryTxt.getText().toString().replace("␣", " ");
                 imageHolder.removeAllViews();
                 dialogView.setVisibility(View.VISIBLE);
-                if (query.length() > 0) search(keyboard.this, imageHolder, query);
-                else search(keyboard.this, imageHolder, ".");
+                if (query.length() > 0) search(Keyboard.this, imageHolder, query, 1);
             }
         });
 
         ImageButton favoriteBtn = new ImageButton(this);
         favoriteBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_favorite));
-        TypedValue favoriteBtnValue = new TypedValue();
-        this.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, favoriteBtnValue, true);
-        favoriteBtn.setBackground(getResources().getDrawable(favoriteBtnValue.resourceId));
+        favoriteBtn.setBackgroundResource(R.drawable.background_button);
         favoriteBtn.setLayoutParams(new LinearLayout.LayoutParams(0, 100, 1));
 
         favoriteBtn.setOnClickListener(new View.OnClickListener() {
@@ -154,49 +202,47 @@ public class keyboard extends InputMethodService {
             }
         });
 
-        ImageButton settingsBtn = new ImageButton(this);
-        settingsBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_settings));
-        TypedValue settingsBtnValue = new TypedValue();
-        this.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, settingsBtnValue, true);
-        settingsBtn.setBackground(getResources().getDrawable(settingsBtnValue.resourceId));
-        settingsBtn.setLayoutParams(new LinearLayout.LayoutParams(0, 100, 1));
-
-        settingsBtn.setOnClickListener(new View.OnClickListener() {
+        ImageButton recommendedBtn = new ImageButton(this);
+        recommendedBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_star));
+        recommendedBtn.setBackgroundResource(R.drawable.background_button);
+        recommendedBtn.setLayoutParams(new LinearLayout.LayoutParams(0, 100, 1));
+        recommendedBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(keyboard.this, MainActivity.class);
-                startActivity(intent);
+                dialogView.setVisibility(View.GONE);
+                imageHolder.removeAllViews();
+                clearAllRequests();
+                SpannableStringBuilder builder = new SpannableStringBuilder(getCurrentInputConnection().getTextBeforeCursor(100, 1));
+                search(Keyboard.this, imageHolder, builder.toString().replace(" ", "+"), 1);
             }
         });
 
         ImageButton localStorageBtn = new ImageButton(this);
         localStorageBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_storage));
-        TypedValue localStorageBtnValue = new TypedValue();
-        this.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, localStorageBtnValue, true);
-        localStorageBtn.setBackground(getResources().getDrawable(localStorageBtnValue.resourceId));
+        localStorageBtn.setBackgroundResource(R.drawable.background_button);
         localStorageBtn.setLayoutParams(new LinearLayout.LayoutParams(0, 100, 1));
 
         localStorageBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dialogView.setVisibility(View.GONE);
-                displayLocalImages(keyboard.this, images, imageHolder);
+                displayLocalImages(Keyboard.this, images, imageHolder);
             }
         });
 
-        buttonHolder.addView(settingsBtn);
+        buttonHolder.addView(recommendedBtn);
         buttonHolder.addView(favoriteBtn);
         buttonHolder.addView(localStorageBtn);
         buttonHolder.addView(searchBtn);
-
-        dialogSearchLine.addView(backspace);
         dialogSearchLine.addView(dialogCharScrollView);
 
 
-        String chars = " ABCDEFGHIJKLNMOPQRSTUVWXYZ";
+        String chars = getResources().getString(R.string.chars);
         for (int i = 0; i < chars.length(); i++) {
             final Button charBtn = new Button(this);
             charBtn.setText(String.valueOf(chars.charAt(i)));
+            charBtn.setTextColor(getResources().getColor(android.R.color.white));
+            charBtn.setBackgroundResource(R.drawable.background_button);
             charBtn.setLayoutParams(new LinearLayout.LayoutParams(100, 100));
             dialogCharView.addView(charBtn);
 
@@ -224,7 +270,7 @@ public class keyboard extends InputMethodService {
             images = indexImages();
 
             if (images.size() == 0) {
-                Toast.makeText(this, R.string.noGifsFound, Toast.LENGTH_LONG).show();
+                Toast.makeText(this, R.string.noGifsFound, Toast.LENGTH_SHORT).show();
             } else {
                 System.out.print(images.size());
             }
@@ -239,10 +285,11 @@ public class keyboard extends InputMethodService {
 
     private void displayLocalImages(final Context context, ArrayList<String> images, final LinearLayout layout) {
 
+        clearAllRequests();
         layout.removeAllViews();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, R.string.noStoragePermission, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, R.string.noStoragePermission, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -320,39 +367,95 @@ public class keyboard extends InputMethodService {
         return listOfAllImages;
     }
 
-    private void search(final Context context, final LinearLayout layout, String query) {
-        new fetcher(getApplicationContext(), getResources().getString(R.string.api_search) + "?api_key=" + getResources().getString(R.string.apiKey) + "&q=" + query, "GET", new fetcherCallback() {
+    private void search(final Context context, final LinearLayout layout, final String query, final int page) {
+        new Fetcher(getApplicationContext(), getResources().getString(R.string.api_search) + "?api_key=" + getResources().getString(R.string.apiKey) + "&q=" + query + "&offset=" + (page - 1) * 25, "GET", new FetcherCallback() {
             @Override
             public void onSuccess(JSONObject json) {
                 try {
                     final JSONArray data = json.getJSONArray("data");
+                    final JSONObject pagination = json.getJSONObject("pagination");
 
-                    if (data.length() == 0)
-                        Toast.makeText(context, R.string.noGifsFoundOnline, Toast.LENGTH_LONG).show();
+                    if (data.length() == 0) {
+                        Toast.makeText(context, getResources().getString(R.string.noGifsFoundOnline).replace("{query}", query), Toast.LENGTH_SHORT).show();
+                    } else {
+                        int totalItems = pagination.getInt("total_count");
+                        int maxPage = (totalItems / 25);
+                        if (totalItems % 25 > 0) maxPage++;
 
-                    for (int i = 0; i < data.length(); i++) {
-                        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
-                        String quality = pref.getString("quality", "downsized");
+                        for (int i = 0; i < data.length(); i++) {
+                            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+                            String quality = pref.getString("quality", "downsized");
 
-                        JSONObject item = data.getJSONObject(i);
-                        JSONObject images = item.getJSONObject("images");
-                        JSONObject imageItem = images.getJSONObject(quality);
-                        final String url = imageItem.getString("url");
+                            JSONObject item = data.getJSONObject(i);
+                            JSONObject images = item.getJSONObject("images");
+                            JSONObject imageItem = images.getJSONObject(quality);
+                            final String url = imageItem.getString("url");
 
-                        final ImageView img = new ImageView(context);
+                            final ImageView img = new ImageView(context);
 
-                        layout.addView(img);
+                            layout.addView(img);
 
-                        img.setOnLongClickListener(new View.OnLongClickListener() {
-                            @Override
-                            public boolean onLongClick(View v) {
-                                addToFavorites(url);
-                                Toast.makeText(context, "♥", Toast.LENGTH_LONG).show();
-                                return true;
-                            }
-                        });
+                            img.setOnLongClickListener(new View.OnLongClickListener() {
+                                @Override
+                                public boolean onLongClick(View v) {
+                                    addToFavorites(url);
+                                    if (Build.VERSION.SDK_INT > 22) {
+                                        Drawable favoriteDrawableRaw = getDrawable(R.drawable.ic_favorite);
+                                        if (favoriteDrawableRaw != null) {
+                                            Bitmap bitmap = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888);
 
-                        setAndLoadImage(context, layout, img, url, 0);
+
+                                            bitmap.eraseColor(Color.argb(80, 0, 0, 0));
+
+                                            Canvas canvas = new Canvas(bitmap);
+
+                                            float h = 100;
+                                            float w = ((float) img.getDrawable().getIntrinsicHeight() / (float) img.getDrawable().getIntrinsicWidth()) * h;
+                                            int cw = canvas.getWidth();
+                                            int ch = canvas.getHeight();
+
+                                            favoriteDrawableRaw.setBounds((int) (cw / 2 - w / 2), (int) (ch / 2 - h / 2), (int) (cw / 2 + w / 2), (int) (ch / 2 + h / 2));
+                                            favoriteDrawableRaw.draw(canvas);
+                                            Drawable favoriteDrawable = new BitmapDrawable(getResources(), bitmap);
+                                            favoriteDrawable.setColorFilter(getColor(R.color.pink), PorterDuff.Mode.MULTIPLY);
+
+                                            img.setForeground(favoriteDrawable);
+
+                                            new android.os.Handler().postDelayed(new Runnable() {
+                                                @TargetApi(23)
+                                                public void run() {
+                                                    img.setForeground(null);
+                                                }
+                                            }, 1000);
+                                        }
+                                    } else {
+                                        Toast.makeText(Keyboard.this, "♥", Toast.LENGTH_SHORT).show();
+                                    }
+                                    return true;
+                                }
+                            });
+
+                            setAndLoadImage(context, layout, img, url, 0);
+                        }
+
+                        if (maxPage > page) {
+
+                            final Button nextPageButton = new Button(context);
+                            nextPageButton.setLayoutParams(new LinearLayout.LayoutParams(300, 300));
+                            nextPageButton.setText(getResources().getString(R.string.more));
+                            nextPageButton.setBackground(getResources().getDrawable(R.drawable.background_button));
+                            nextPageButton.setTextColor(getResources().getColor(android.R.color.white));
+                            nextPageButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    nextPageButton.setText(getResources().getString(R.string.page).replace("{page}", String.valueOf(page + 1)));
+                                    nextPageButton.setEnabled(false);
+                                    search(context, layout, query, page + 1);
+                                }
+                            });
+
+                            layout.addView(nextPageButton);
+                        }
                     }
                 } catch (JSONException err) {
                     // TO-DO
@@ -370,8 +473,10 @@ public class keyboard extends InputMethodService {
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
         Set<String> set = pref.getStringSet("favorites", null);
 
+        clearAllRequests();
+        imageHolder.removeAllViews();
+
         if (set != null) {
-            imageHolder.removeAllViews();
 
             List<String> list = new ArrayList<>(set);
 
@@ -391,6 +496,12 @@ public class keyboard extends InputMethodService {
 
                 setAndLoadImage(this, imageHolder, img, url, 0);
             }
+        }
+    }
+
+    private void clearAllRequests() {
+        for (int i = 0; i < requestQueue.size(); i++) {
+            requestQueue.get(i).clear();
         }
     }
 
@@ -434,7 +545,7 @@ public class keyboard extends InputMethodService {
         bm.eraseColor(getResources().getColor(android.R.color.black));
         img.setImageBitmap(bm);
 
-        Glide.with(getApplicationContext()).asFile().apply(new RequestOptions().timeout(30000)).load(url).listener(new RequestListener<File>() {
+        Request request = Glide.with(getApplicationContext()).asFile().apply(new RequestOptions().timeout(30000)).load(url).listener(new RequestListener<File>() {
             @Override
             public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<File> target, boolean isFirstResource) {
                 if (count < 3) setAndLoadImage(context, layout, img, url, count + 1);
@@ -477,8 +588,8 @@ public class keyboard extends InputMethodService {
 
                 return false;
             }
-        }).submit();
+        }).submit().getRequest();
+
+        requestQueue.add(request);
     }
-
-
 }

@@ -1,21 +1,29 @@
 <resources>
     <string name="app_name">Gifboard</string>
-    <string name="noGifsFound">Could not find any Gif\'s on your device.</string>
-    <string name="noGifsFoundOnline">Could not find any Gif\'s online.</string>
-    <string name="noStoragePermission">Could not access Storage. Make sure you granted permission.</string>
-    <string name="changeInput">Change Keyboard</string>
-    <string name="notSupported">App does not support keyboard.</string>
+    <string name="noGifsFound">Could not find any Gif\'s on your device</string>
+    <string name="noGifsFoundOnline">No Gif\'s for \'{query}\'</string>
+    <string name="noStoragePermission">Could not access Storage. Make sure you granted permission</string>
     <string name="search">Refresh</string>
     <string name="settings">Settings</string>
     <string name="enableKeyboard">Enable keyboard</string>
     <string name="askForStorageReadPermissionBtn">Grant storage read permission</string>
     <string name="quality">Quality of Gif\'s</string>
+    <string name="page">Page {page}</string>
+    <string name="more">More</string>
+    <string name="firstStep">First step</string>
+    <string name="secondStep">Second step</string>
+    <string name="chars">␣ABCDEFGHIJKLNMOPQRSTUVWXYZ0123456789</string>
+
+    <string name="theme">Theme</string>
+    <string name="blueTheme">Blue</string>
+    <string name="pinkTheme">Pink</string>
+    <string name="greenTheme">Green</string>
+    <string name="blackTheme">Black</string>
 
     <string-array name="qualityLevels">
         <item>Normal (Recommended)</item>
-        <item>Low</item>
         <item>Medium</item>
-        <item>Garbage</item>
+        <item>Low</item>
         <item>Original</item>
     </string-array>
 </resources>

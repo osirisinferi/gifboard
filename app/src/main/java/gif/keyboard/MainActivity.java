@@ -13,40 +13,35 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.Spinner;
 
 public class MainActivity extends AppCompatActivity {
-
-    private int doneColor;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        doneColor = getResources().getColor(R.color.greenDone);
-
         if (getSupportActionBar() != null)
             getSupportActionBar().setTitle(getResources().getString(R.string.app_name) + " " + getResources().getString(R.string.settings));
 
         final Spinner qualitySpinner = findViewById(R.id.qualitySpinner);
 
-        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        final SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+
         int position;
 
         switch (pref.getString("quality", "downsized")) {
-            case "downsized_small":
+            case "downsized_medium":
                 position = 1;
                 break;
-            case "downsized_medium":
+            case "preview_gif":
                 position = 2;
                 break;
-            case "preview_gif":
-                position = 3;
-                break;
             case "original":
-                position = 4;
+                position = 3;
                 break;
             default:
                 position = 0;
@@ -60,15 +55,12 @@ public class MainActivity extends AppCompatActivity {
                 String quality;
                 switch (position) {
                     case 1:
-                        quality = "downsized_small";
-                        break;
-                    case 2:
                         quality = "downsized_medium";
                         break;
-                    case 3:
+                    case 2:
                         quality = "preview_gif";
                         break;
-                    case 4:
+                    case 3:
                         quality = "original";
                         break;
                     default:
@@ -86,6 +78,68 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        RadioButton blueThemeBtn = findViewById(R.id.blueThemeBtn);
+        RadioButton pinkThemeBtn = findViewById(R.id.pinkThemeBtn);
+        RadioButton greenThemeBtn = findViewById(R.id.greenThemeBtn);
+        RadioButton blackThemeBtn = findViewById(R.id.blackThemeBtn);
+
+        blueThemeBtn.setChecked(false);
+        pinkThemeBtn.setChecked(false);
+        greenThemeBtn.setChecked(false);
+        blackThemeBtn.setChecked(false);
+
+        switch (pref.getInt("style", 0)) {
+            case 0:
+                blueThemeBtn.setChecked(true);
+                break;
+            case 1:
+                pinkThemeBtn.setChecked(true);
+                break;
+            case 2:
+                greenThemeBtn.setChecked(true);
+                break;
+            case 3:
+                blackThemeBtn.setChecked(true);
+                break;
+        }
+
+        blueThemeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = pref.edit();
+                editor.putInt("style", 0);
+                editor.apply();
+
+            }
+        });
+
+        pinkThemeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = pref.edit();
+                editor.putInt("style", 1);
+                editor.apply();
+            }
+        });
+
+        greenThemeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = pref.edit();
+                editor.putInt("style", 2);
+                editor.apply();
+            }
+        });
+
+        blackThemeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = pref.edit();
+                editor.putInt("style", 3);
+                editor.apply();
+            }
+        });
     }
 
     public void openKeyboardSettings(View v) {
@@ -98,22 +152,20 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        Button enableKeyboardBtn = findViewById(R.id.enableKeyboardBtn);
+        LinearLayout firstStepView = findViewById(R.id.firstStepView);
+        LinearLayout secondStepView = findViewById(R.id.secondStepView);
 
         InputMethodManager im = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         if (im != null) {
             String list = im.getEnabledInputMethodList().toString();
             if (list.contains(BuildConfig.APPLICATION_ID)) {
-                enableKeyboardBtn.setBackgroundColor(doneColor);
-                enableKeyboardBtn.setEnabled(false);
+                firstStepView.setVisibility(View.GONE);
+                secondStepView.setVisibility(View.VISIBLE);
             }
         }
 
-        Button askForStorageReadPermissionBtn = findViewById(R.id.askForStorageReadPermissionBtn);
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            askForStorageReadPermissionBtn.setBackgroundColor(doneColor);
-            askForStorageReadPermissionBtn.setEnabled(false);
+            secondStepView.setVisibility(View.GONE);
         }
 
         super.onResume();

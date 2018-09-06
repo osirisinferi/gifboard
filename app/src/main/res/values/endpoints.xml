@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="apiKey">FRMet8Yr1HiF6pNCqU5XcFIAVaORgkmA</string>
+    <string name="apiKey">eEe0r8lvLRjRB3jHcamfLfHjITajolsN</string>
     <string name="api_search">https://api.giphy.com/v1/gifs/search</string>
 </resources>

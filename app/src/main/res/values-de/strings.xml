@@ -1,20 +1,29 @@
 <resources>
     <string name="app_name">Gifboard</string>
     <string name="noGifsFound">Konnte keine Gif\'s finden.</string>
-    <string name="noGifsFoundOnline">Es wurden keine Gif\'s online gefunden.</string>
-    <string name="noStoragePermission">Der Zugriff auf deinen Speicher wurde verwehrt.</string>
-    <string name="changeInput">Tastatur wechseln</string>
-    <string name="notSupported">Diese App unterstützt diese Tastatur nicht.</string>
+    <string name="noGifsFoundOnline">Keine Gif\'s für \'{query}\' gefunden</string>
+    <string name="noStoragePermission">Der Zugriff auf deinen Speicher wurde verwehrt</string>
     <string name="search">Aktualisieren</string>
     <string name="settings">Einstellungen</string>
     <string name="enableKeyboard">Tastatur aktivieren</string>
     <string name="askForStorageReadPermissionBtn">Lesezugriff auf Speicher erlauben</string>
     <string name="quality">Qualität der Gif\'s</string>
+    <string name="page">Seite {page}</string>
+    <string name="more">Mehr</string>
+    <string name="firstStep">Erster Schritt</string>
+    <string name="secondStep">Zweiter Schritt</string>
+    <string name="chars">␣ABCDEFGHIJKLNMOPQRSTUVWXYZÄÖÜ0123456789</string>
+
+    <string name="theme">Theme</string>
+    <string name="blueTheme">Blue</string>
+    <string name="pinkTheme">Pink</string>
+    <string name="greenTheme">Grün</string>
+    <string name="blackTheme">Schwarz</string>
+
     <string-array name="qualityLevels">
         <item>Normal (Empfohlen)</item>
-        <item>Niedrig</item>
         <item>Durchschnittlich</item>
-        <item>Augenkrebs</item>
+        <item>Niedrig</item>
         <item>Original</item>
     </string-array>
 </resources>

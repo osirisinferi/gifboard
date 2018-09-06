@@ -12,15 +12,15 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-class fetcher {
+class Fetcher {
 
     private Context context;
     private String url;
     private String method;
-    private fetcherCallback callback;
+    private FetcherCallback callback;
 
 
-    fetcher(Context context, String url, String method, fetcherCallback callback) {
+    Fetcher(Context context, String url, String method, FetcherCallback callback) {
         this.method = method;
         this.context = context;
         this.url = url;
