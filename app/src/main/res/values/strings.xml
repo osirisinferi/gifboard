@@ -13,6 +13,7 @@
     <string name="firstStep">First step</string>
     <string name="secondStep">Second step</string>
     <string name="chars">␣ABCDEFGHIJKLNMOPQRSTUVWXYZ0123456789</string>
+    <string name="madeBy">Made with ♡ by Leo</string>
 
     <string name="theme">Theme</string>
     <string name="blueTheme">Blue</string>
